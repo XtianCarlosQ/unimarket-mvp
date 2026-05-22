@@ -151,11 +151,17 @@ function renderHome(){
   if (!state.loggedIn) return renderLoggedOut();
   const {topbar, content} = cloneShell();
   setActiveNav("home");
-  topbar.innerHTML = topLogo(`
+  topbar.innerHTML = `
     <button class="icon-btn" id="menuBtn" title="Menú">☰</button>
-    <button class="icon-btn" id="notifBtn" title="Notificaciones">🔔</button>
-    <button class="icon-btn" id="themeBtn" title="Modo oscuro">◐</button>
-  `);
+    <div class="logo-mini">
+      <img src="assets/logo-bag.svg" alt="UniMarket">
+      <strong>UNIMARKET</strong>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="notifBtn" title="Notificaciones">🔔</button>
+      <button class="icon-btn" id="themeBtn" title="Modo oscuro">◐</button>
+    </div>
+  `;
 
   content.innerHTML = `
     <section class="hero">
@@ -556,7 +562,20 @@ function emptyState(icon, title, text){
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js").then(registration => {
+      registration.addEventListener("updatefound", () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            toast("✅ Nueva versión disponible");
+            if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ type: "SKIP_WAITING" });
+              setTimeout(() => window.location.reload(), 500);
+            }
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 

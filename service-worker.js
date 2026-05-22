@@ -1,4 +1,5 @@
-const CACHE_NAME = "unimarket-mvp-v1";
+const CACHE_VERSION = 2;
+const CACHE_NAME = `unimarket-mvp-v${CACHE_VERSION}`;
 const ASSETS = [
   "./",
   "./index.html",
@@ -46,13 +47,37 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).then(response => {
+  
+  const url = new URL(event.request.url);
+  const isAsset = url.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|woff|woff2)$/i);
+  
+  if (isAsset) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        return cached || fetch(event.request).then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        }).catch(() => null);
+      })
+    );
+  } else {
+    event.respondWith(
+      fetch(event.request).then(response => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         return response;
-      }).catch(() => caches.match("./index.html"));
-    })
-  );
+      }).catch(() => {
+        return caches.match(event.request).then(cached => {
+          return cached || caches.match("./index.html");
+        });
+      })
+    );
+  }
+});
+
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
