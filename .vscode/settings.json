@@ -11,6 +11,14 @@
         "/^node -c js/app\\.js ; echo \"✓ Sintaxis correcta\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^powershell -Command \"Get-Content css/style\\.css \\| Select-Object -First 200 \\| ForEach-Object \\{ if \\(\\$_ -match 'bottom-nav'\\) \\{ Write-Host \\$_ \\} \\}\" ; echo \"CSS verificado\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -c js/app\\.js ; node -c js/data\\.js ; echo \"✓ JavaScript correcto\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

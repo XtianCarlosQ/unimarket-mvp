@@ -152,8 +152,9 @@ function renderHome(){
   const {topbar, content} = cloneShell();
   setActiveNav("home");
   topbar.innerHTML = topLogo(`
+    <button class="icon-btn" id="menuBtn" title="Menú">☰</button>
+    <button class="icon-btn" id="notifBtn" title="Notificaciones">🔔</button>
     <button class="icon-btn" id="themeBtn" title="Modo oscuro">◐</button>
-    <button class="icon-btn" title="Notificaciones">⌁</button>
   `);
 
   content.innerHTML = `
@@ -210,6 +211,8 @@ function renderHome(){
   content.querySelector("[data-go='products']").addEventListener("click", () => renderProducts(null, "", {screen: "home"}));
   content.querySelector("#homeSearch").addEventListener("input", e => renderProducts(null, e.target.value, {screen: "home"}));
   app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
+  app.querySelector("#menuBtn").addEventListener("click", () => toast("Menú de navegación: usa los botones inferiores."));
+  app.querySelector("#notifBtn").addEventListener("click", () => toast("No tienes notificaciones nuevas."));
 }
 
 function productMiniCard(p){
@@ -476,7 +479,9 @@ function renderProfile(){
   const u = UM_DATA.currentUser;
   const {topbar, content} = cloneShell();
   setActiveNav("profile");
-  topbar.innerHTML = topLogo(`<button class="icon-btn" id="themeBtn" title="Modo oscuro">◐</button>`);
+  topbar.innerHTML = topLogo(`
+    <button class="icon-btn" id="settingsBtn" title="Configuración">⚙</button>
+  `);
   content.innerHTML = `
     <section class="profile-hero">
       <img src="${u.avatar}" alt="${u.name}">
@@ -501,7 +506,7 @@ function renderProfile(){
       ].map((m, index) => `<button class="menu-item" data-action="${index === 5 ? 'logout' : ''}"><span>${m[0]}</span><b>${m[1]}</b><span class="arrow">›</span></button>`).join("")}
     </section>
   `;
-  app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
+  app.querySelector("#settingsBtn").addEventListener("click", () => toast("Configuración: notificaciones, privacidad y preferencias."));
   content.querySelectorAll("[data-action='logout']").forEach(btn => {
     btn.addEventListener("click", () => showConfirmModal("Tu sesión de demostración se cerrará y verás una pantalla vacía.", logout));
   });
