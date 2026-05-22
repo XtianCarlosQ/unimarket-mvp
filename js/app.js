@@ -7,7 +7,9 @@ const state = {
   chatId: null,
   filter: "todos",
   favorites: new Set(["p1","p3","p5"]),
-  dark: localStorage.getItem("um-dark") === "1"
+  dark: localStorage.getItem("um-dark") === "1",
+  loggedIn: localStorage.getItem("um-logged") !== "0",
+  backTarget: null
 };
 
 if (state.dark) document.body.classList.add("dark");
@@ -34,10 +36,85 @@ function setActiveNav(name){
   });
 }
 
+function resetBackTarget(){
+  state.backTarget = null;
+}
+
+function goBack(){
+  const target = state.backTarget;
+  state.backTarget = null;
+  if (!target) return renderHome();
+  switch(target.screen){
+    case "home": return renderHome();
+    case "categories": return renderCategories(target.backTarget);
+    case "products": return renderProducts(target.category, target.search, target.backTarget);
+    case "detail": return renderDetail(target.productId, target.backTarget);
+    case "messages": return renderMessages(target.backTarget);
+    case "thread": return renderThread(target.chatId, target.backTarget);
+    case "profile": return renderProfile(target.backTarget);
+    default: return renderHome();
+  }
+}
+
+function showConfirmModal(message, onConfirm){
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.innerHTML = `
+    <div class="modal-card">
+      <h3>¿Desea cerrar sesión?</h3>
+      <p>${message}</p>
+      <div class="modal-buttons">
+        <button class="btn btn-outline" id="cancelLogout">No</button>
+        <button class="btn btn-primary" id="confirmLogout">Sí</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener("click", e => {
+    if (e.target === modal) modal.remove();
+  });
+  app.appendChild(modal);
+  modal.querySelector("#cancelLogout").addEventListener("click", () => modal.remove());
+  modal.querySelector("#confirmLogout").addEventListener("click", () => {
+    modal.remove();
+    onConfirm();
+  });
+}
+
+function logout(){
+  localStorage.setItem("um-logged", "0");
+  state.loggedIn = false;
+  state.history = [];
+  state.backTarget = null;
+  toast("Sesión cerrada.");
+  renderLoggedOut();
+}
+
+function renderLoggedOut(){
+  state.screen = "home";
+  const {topbar, content} = cloneShell();
+  setActiveNav("home");
+  topbar.innerHTML = topLogo(`<button class="icon-btn" id="themeBtn" title="Modo oscuro">◐</button>`);
+  content.innerHTML = `
+    <div class="empty">
+      <span class="icon">🔒</span>
+      <b>Has cerrado sesión</b>
+      <p>El contenido está bloqueado para la sesión demo. Pulsa el botón para continuar como invitada.</p>
+      <button class="btn btn-primary btn-full" id="continueGuest">Continuar como invitada</button>
+    </div>
+  `;
+  app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
+  app.querySelector("#continueGuest").addEventListener("click", () => {
+    state.loggedIn = true;
+    localStorage.setItem("um-logged", "1");
+    renderHome();
+  });
+}
+
 function bindNav(){
   app.querySelectorAll("[data-nav]").forEach(btn => {
     btn.addEventListener("click", () => {
       const nav = btn.dataset.nav;
+      resetBackTarget();
       if (nav === "home") renderHome();
       if (nav === "categories") renderCategories();
       if (nav === "publish") renderPublish();
@@ -71,6 +148,7 @@ function topLogo(actions = ""){
 
 function renderHome(){
   state.screen = "home";
+  if (!state.loggedIn) return renderLoggedOut();
   const {topbar, content} = cloneShell();
   setActiveNav("home");
   topbar.innerHTML = topLogo(`
@@ -107,15 +185,14 @@ function renderHome(){
 
     <div class="section-head">
       <h3>Ofertas especiales</h3>
-      <button data-go="offers">Ver más</button>
+      <button data-open-product="p6" class="offer-card">
+        <div>
+          <h4>Envíos gratis dentro del campus</h4>
+          <p>Coordina entrega en Biblioteca, comedor o facultad.</p>
+        </div>
+        <span class="truck">🚚</span>
+      </button>
     </div>
-    <button class="offer" data-open-product="p6">
-      <div>
-        <h4>Envíos gratis dentro del campus</h4>
-        <p>Coordina entrega en Biblioteca, comedor o facultad.</p>
-      </div>
-      <span class="truck">🚚</span>
-    </button>
 
     <section class="benefits">
       <div class="benefit"><span>🏪</span><b>Emprendimientos<br>universitarios</b></div>
@@ -125,13 +202,13 @@ function renderHome(){
   `;
 
   content.querySelectorAll("[data-category]").forEach(btn => {
-    btn.addEventListener("click", () => renderProducts(btn.dataset.category));
+    btn.addEventListener("click", () => renderProducts(btn.dataset.category, "", {screen: "home"}));
   });
   content.querySelectorAll("[data-open-product]").forEach(btn => {
-    btn.addEventListener("click", () => renderDetail(btn.dataset.openProduct));
+    btn.addEventListener("click", () => renderDetail(btn.dataset.openProduct, {screen: "home"}));
   });
-  content.querySelector("[data-go='products']").addEventListener("click", () => renderProducts());
-  content.querySelector("#homeSearch").addEventListener("input", e => renderProducts(null, e.target.value));
+  content.querySelector("[data-go='products']").addEventListener("click", () => renderProducts(null, "", {screen: "home"}));
+  content.querySelector("#homeSearch").addEventListener("input", e => renderProducts(null, e.target.value, {screen: "home"}));
   app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
 }
 
@@ -155,7 +232,7 @@ function renderCategories(){
   topbar.innerHTML = `
     <button class="back-btn" id="backHome">‹</button>
     <div class="top-title">Categorías</div>
-    <button class="icon-btn">⌕</button>
+    <button class="icon-btn" id="searchBtn">⌕</button>
   `;
   content.innerHTML = `
     <section class="category-list">
@@ -168,15 +245,17 @@ function renderCategories(){
       `).join("")}
     </section>
   `;
-  app.querySelector("#backHome").addEventListener("click", renderHome);
+  app.querySelector("#backHome").addEventListener("click", goBack);
+  app.querySelector("#searchBtn").addEventListener("click", () => toast("Búsqueda en categorías disponible en próxima versión."));
   content.querySelectorAll("[data-category]").forEach(btn => {
-    btn.addEventListener("click", () => renderProducts(btn.dataset.category));
+    btn.addEventListener("click", () => renderProducts(btn.dataset.category, "", {screen: "categories"}));
   });
 }
 
-function renderProducts(categoryId = null, search = ""){
+function renderProducts(categoryId = null, search = "", backTarget = {screen: "categories"}){
   state.screen = "products";
   state.category = categoryId;
+  state.backTarget = backTarget;
   const {topbar, content} = cloneShell();
   setActiveNav("categories");
   const cat = categoryId ? categoryById(categoryId) : null;
@@ -203,15 +282,15 @@ function renderProducts(categoryId = null, search = ""){
     </section>
   `;
 
-  app.querySelector("#backCats").addEventListener("click", renderCategories);
+  app.querySelector("#backCats").addEventListener("click", goBack);
   app.querySelector("#filterBtn").addEventListener("click", () => toast("Filtros avanzados estarán disponibles en la siguiente versión."));
   content.querySelectorAll("[data-filter]").forEach(btn => {
-    btn.addEventListener("click", () => { state.filter = btn.dataset.filter; renderProducts(categoryId, search); });
+    btn.addEventListener("click", () => { state.filter = btn.dataset.filter; renderProducts(categoryId, search, backTarget); });
   });
   content.querySelectorAll("[data-open-product]").forEach(btn => {
     btn.addEventListener("click", e => {
       if (e.target.closest(".heart")) return;
-      renderDetail(btn.dataset.openProduct);
+      renderDetail(btn.dataset.openProduct, {screen: "products", category: categoryId, search, backTarget});
     });
   });
   content.querySelectorAll("[data-fav]").forEach(btn => {
@@ -249,8 +328,9 @@ function toggleFav(id, btn){
   }
 }
 
-function renderDetail(id){
+function renderDetail(id, backTarget = {screen: "products", category: state.category}){
   state.productId = id;
+  state.backTarget = backTarget;
   const p = productById(id);
   const seller = sellerById(p.sellerId);
   const {topbar, content} = cloneShell();
@@ -298,26 +378,28 @@ function renderDetail(id){
       <button class="btn btn-primary" id="buyBtn">Comprar ahora</button>
     </div>
   `;
-  app.querySelector("#backProducts").addEventListener("click", () => renderProducts(state.category));
+  app.querySelector("#backProducts").addEventListener("click", goBack);
   app.querySelector("#detailFav").addEventListener("click", () => {
     state.favorites.has(id) ? state.favorites.delete(id) : state.favorites.add(id);
-    renderDetail(id);
+    renderDetail(id, backTarget);
   });
   content.querySelector("#cartBtn").addEventListener("click", () => toast("Agregado al carrito demo."));
   content.querySelector("#buyBtn").addEventListener("click", () => toast("Compra simulada: coordina entrega por chat."));
   content.querySelector("#openSellerChat").addEventListener("click", () => {
     const chat = UM_DATA.chats.find(c => c.sellerId === seller.id) || UM_DATA.chats[0];
-    renderThread(chat.id);
+    renderThread(chat.id, {screen: "detail", productId: id, category: state.category, backTarget});
   });
 }
 
-function renderMessages(){
+function renderMessages(backTarget = {screen: "home"}){
+  state.screen = "messages";
+  state.backTarget = backTarget;
   const {topbar, content} = cloneShell();
   setActiveNav("messages");
   topbar.innerHTML = `
     <button class="back-btn" id="backHome">‹</button>
     <div class="top-title">Mensajes</div>
-    <button class="icon-btn">＋</button>
+    <button class="icon-btn" id="addMsg">＋</button>
   `;
   content.innerHTML = `
     <label class="searchbar messages-search">
@@ -328,9 +410,10 @@ function renderMessages(){
       ${UM_DATA.chats.map(chatItem).join("")}
     </section>
   `;
-  app.querySelector("#backHome").addEventListener("click", renderHome);
+  app.querySelector("#backHome").addEventListener("click", goBack);
+  app.querySelector("#addMsg").addEventListener("click", () => toast("Crear nuevo chat disponible en próxima versión."));
   content.querySelectorAll("[data-chat]").forEach(btn => {
-    btn.addEventListener("click", () => renderThread(btn.dataset.chat));
+    btn.addEventListener("click", () => renderThread(btn.dataset.chat, {screen: "messages"}));
   });
 }
 
@@ -352,7 +435,9 @@ function chatItem(c){
   `;
 }
 
-function renderThread(chatId){
+function renderThread(chatId, backTarget = {screen: "messages"}){
+  state.screen = "thread";
+  state.backTarget = backTarget;
   const chat = UM_DATA.chats.find(c => c.id === chatId);
   const seller = sellerById(chat.sellerId);
   const product = productById(chat.productId);
@@ -375,7 +460,7 @@ function renderThread(chatId){
       <button id="sendMessage">➤</button>
     </div>
   `;
-  app.querySelector("#backMessages").addEventListener("click", renderMessages);
+  app.querySelector("#backMessages").addEventListener("click", goBack);
   content.querySelector("#sendMessage").addEventListener("click", () => {
     const input = content.querySelector("#messageBox");
     if (!input.value.trim()) return toast("Escribe un mensaje para simular el envío.");
@@ -391,7 +476,7 @@ function renderProfile(){
   const u = UM_DATA.currentUser;
   const {topbar, content} = cloneShell();
   setActiveNav("profile");
-  topbar.innerHTML = topLogo(`<button class="icon-btn" id="settingsBtn">⚙</button>`);
+  topbar.innerHTML = topLogo(`<button class="icon-btn" id="themeBtn" title="Modo oscuro">◐</button>`);
   content.innerHTML = `
     <section class="profile-hero">
       <img src="${u.avatar}" alt="${u.name}">
@@ -405,14 +490,6 @@ function renderProfile(){
       </div>
     </section>
 
-    <section class="switch-line">
-      <span class="switch-text">
-        <b>Modo oscuro</b>
-        <span>Activa una interfaz cómoda para uso nocturno.</span>
-      </span>
-      <button id="darkToggle" class="toggle ${state.dark ? 'active' : ''}" aria-label="Cambiar modo oscuro"></button>
-    </section>
-
     <section class="menu-list">
       ${[
         ["▦","Mis productos"],
@@ -421,11 +498,13 @@ function renderProfile(){
         ["💳","Métodos de pago"],
         ["?","Ayuda y soporte"],
         ["⎋","Cerrar sesión"]
-      ].map(m => `<button class="menu-item"><span>${m[0]}</span><b>${m[1]}</b><span class="arrow">›</span></button>`).join("")}
+      ].map((m, index) => `<button class="menu-item" data-action="${index === 5 ? 'logout' : ''}"><span>${m[0]}</span><b>${m[1]}</b><span class="arrow">›</span></button>`).join("")}
     </section>
   `;
-  content.querySelector("#darkToggle").addEventListener("click", toggleTheme);
-  app.querySelector("#settingsBtn").addEventListener("click", () => toast("Configuración demo: modo oscuro, perfil y métodos de pago."));
+  app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
+  content.querySelectorAll("[data-action='logout']").forEach(btn => {
+    btn.addEventListener("click", () => showConfirmModal("Tu sesión de demostración se cerrará y verás una pantalla vacía.", logout));
+  });
 }
 
 function renderPublish(){
@@ -453,7 +532,7 @@ function renderPublish(){
       </ul>
     </section>
   `;
-  app.querySelector("#backHome").addEventListener("click", renderHome);
+  app.querySelector("#backHome").addEventListener("click", goBack);
   content.querySelector("#simulatePublish").addEventListener("click", () => toast("Producto publicado en modo demo."));
 }
 
