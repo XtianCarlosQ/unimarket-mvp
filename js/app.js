@@ -14,6 +14,118 @@ const state = {
 
 if (state.dark) document.body.classList.add("dark");
 
+let isPopStateNav = false;
+
+// Inicializar interceptador de botón de retroceso para Android / PWA
+if (window.history && window.history.replaceState) {
+  window.history.replaceState({ screen: "exit_intercept" }, "");
+}
+
+function pushStateForScreen(screen, data = {}) {
+  if (isPopStateNav) return;
+  if (window.history && window.history.pushState) {
+    window.history.pushState({
+      screen,
+      productId: state.productId,
+      category: state.category,
+      chatId: state.chatId,
+      backTarget: state.backTarget,
+      ...data
+    }, "");
+  }
+}
+
+window.addEventListener("popstate", (event) => {
+  if (!event.state) return;
+  
+  if (event.state.screen === "exit_intercept") {
+    showExitModal();
+    return;
+  }
+  
+  isPopStateNav = true;
+  
+  // Restaurar estado interno
+  state.screen = event.state.screen;
+  state.productId = event.state.productId;
+  state.category = event.state.category;
+  state.chatId = event.state.chatId;
+  state.backTarget = event.state.backTarget;
+  
+  // Renderizar la pantalla correspondiente
+  switch(state.screen) {
+    case "home":
+      renderHome();
+      break;
+    case "categories":
+      renderCategories();
+      break;
+    case "products":
+      renderProducts(state.category, "", state.backTarget);
+      break;
+    case "detail":
+      renderDetail(state.productId, state.backTarget);
+      break;
+    case "messages":
+      renderMessages(state.backTarget);
+      break;
+    case "thread":
+      renderThread(state.chatId, state.backTarget);
+      break;
+    case "profile":
+      renderProfile();
+      break;
+    case "publish":
+      renderPublish();
+      break;
+  }
+  
+  isPopStateNav = false;
+});
+
+function showExitModal() {
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.innerHTML = `
+    <div class="modal-card">
+      <h3>¿Desea salir de la app?</h3>
+      <p>Estás a punto de salir del marketplace UniMarket. ¿Confirmas que deseas salir?</p>
+      <div class="modal-buttons">
+        <button class="btn btn-outline" id="cancelExit">No, quedarme</button>
+        <button class="btn btn-primary" id="confirmExit">Sí, salir</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener("click", e => {
+    if (e.target === modal) {
+      modal.remove();
+      history.pushState({ screen: "home" }, "");
+    }
+  });
+  app.appendChild(modal);
+  modal.querySelector("#cancelExit").addEventListener("click", () => {
+    modal.remove();
+    history.pushState({ screen: "home" }, "");
+  });
+  modal.querySelector("#confirmExit").addEventListener("click", () => {
+    modal.remove();
+    const {topbar, content} = cloneShell();
+    topbar.innerHTML = topLogo();
+    content.innerHTML = `
+      <div class="empty">
+        <span class="icon">👋</span>
+        <b>¡Gracias por visitarnos!</b>
+        <p>Tu sesión demo ha finalizado de forma segura. Ya puedes cerrar esta pestaña del navegador.</p>
+        <button class="btn btn-primary btn-full" id="reopenApp">Volver a ingresar</button>
+      </div>
+    `;
+    app.querySelector("#reopenApp").addEventListener("click", () => {
+      window.location.reload();
+    });
+    window.close();
+  });
+}
+
 const money = n => `S/ ${Number(n).toFixed(2)}`;
 const sellerById = id => UM_DATA.sellers.find(s => s.id === id);
 const productById = id => UM_DATA.products.find(p => p.id === id);
@@ -108,6 +220,7 @@ function renderLoggedOut(){
     localStorage.setItem("um-logged", "1");
     renderHome();
   });
+  pushStateForScreen("home");
 }
 
 function bindNav(){
@@ -219,6 +332,7 @@ function renderHome(){
   app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
   app.querySelector("#menuBtn").addEventListener("click", () => toast("Menú de navegación: usa los botones inferiores."));
   app.querySelector("#notifBtn").addEventListener("click", () => toast("No tienes notificaciones nuevas."));
+  pushStateForScreen("home");
 }
 
 function productMiniCard(p){
@@ -259,6 +373,7 @@ function renderCategories(){
   content.querySelectorAll("[data-category]").forEach(btn => {
     btn.addEventListener("click", () => renderProducts(btn.dataset.category, "", {screen: "categories"}));
   });
+  pushStateForScreen("categories");
 }
 
 function renderProducts(categoryId = null, search = "", backTarget = {screen: "categories"}){
@@ -305,6 +420,7 @@ function renderProducts(categoryId = null, search = "", backTarget = {screen: "c
   content.querySelectorAll("[data-fav]").forEach(btn => {
     btn.addEventListener("click", () => toggleFav(btn.dataset.fav, btn));
   });
+  pushStateForScreen("products", { category: categoryId, search, backTarget });
 }
 
 function productCard(p){
@@ -398,6 +514,7 @@ function renderDetail(id, backTarget = {screen: "products", category: state.cate
     const chat = UM_DATA.chats.find(c => c.sellerId === seller.id) || UM_DATA.chats[0];
     renderThread(chat.id, {screen: "detail", productId: id, category: state.category, backTarget});
   });
+  pushStateForScreen("detail", { productId: id, backTarget });
 }
 
 function renderMessages(backTarget = {screen: "home"}){
@@ -424,6 +541,7 @@ function renderMessages(backTarget = {screen: "home"}){
   content.querySelectorAll("[data-chat]").forEach(btn => {
     btn.addEventListener("click", () => renderThread(btn.dataset.chat, {screen: "messages"}));
   });
+  pushStateForScreen("messages", { backTarget });
 }
 
 function chatItem(c){
@@ -479,6 +597,7 @@ function renderThread(chatId, backTarget = {screen: "messages"}){
     thread.scrollIntoView({block:"end"});
     toast("Mensaje enviado en modo demo.");
   });
+  pushStateForScreen("thread", { chatId, backTarget });
 }
 
 function renderProfile(){
@@ -523,6 +642,7 @@ function renderProfile(){
   content.querySelectorAll("[data-action='logout']").forEach(btn => {
     btn.addEventListener("click", () => showConfirmModal("Tu sesión de demostración se cerrará y verás una pantalla vacía.", logout));
   });
+  pushStateForScreen("profile");
 }
 
 function renderPublish(){
@@ -552,6 +672,7 @@ function renderPublish(){
   `;
   app.querySelector("#backHome").addEventListener("click", goBack);
   content.querySelector("#simulatePublish").addEventListener("click", () => toast("Producto publicado en modo demo."));
+  pushStateForScreen("publish");
 }
 
 function toggleTheme(){
