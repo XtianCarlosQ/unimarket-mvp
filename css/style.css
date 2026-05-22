@@ -228,7 +228,31 @@ body.dark .bubble-msg.in{background:#2b1d42}
 body.dark .category-item,.dark .chat-item,.dark .menu-item,.dark .switch-line{border-color:#392650}
 
 @media (max-width: 720px){
-  .desktop-frame{display:block;min-height:100vh;padding:0;background:#fff}
+  html, body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .desktop-frame{
+    display: block;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0;
+    background: #fff;
+    overflow: hidden;
+  }
   .brand-banner{display:none}
-  .phone{width:100%;height:100vh;min-height:100vh;border:0;border-radius:0;box-shadow:none}
+  .phone{
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
