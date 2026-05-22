@@ -41,13 +41,14 @@ img{display:block;max-width:100%}
 .brand-copy p{font-size:13px;margin:0;color:#4f485d}
 
 .phone{width:min(430px,100%);height:min(880px,calc(100vh - 122px));min-height:720px;background:var(--card);border-radius:34px;box-shadow:var(--shadow);overflow:hidden;border:1px solid rgba(109,53,216,.18);position:relative}
-.screen{position:relative;height:100%;display:flex;flex-direction:column;background:var(--card)}
+.screen{position:relative;height:100%;display:flex;flex-direction:column;background:var(--card);overflow:hidden}
 .status-bar{display:none;height:28px;padding:8px 18px 0;font-size:14px;font-weight:700;color:#191424}
 .status-icons{letter-spacing:1px;font-size:12px;color:#2e2937}
 @media (min-width: 721px){
   .status-bar{display:flex;align-items:center;justify-content:space-between}
 }
 .topbar{padding:12px 18px 14px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:var(--card);z-index:2}
+.top-spacer{width:35px;min-width:35px}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 88px;background:linear-gradient(180deg,#fff 0,#fbf9ff 42%,#fff 100%)}
 .content::-webkit-scrollbar{width:0;height:0}
 
@@ -62,7 +63,7 @@ img{display:block;max-width:100%}
 .hero{background:linear-gradient(135deg,var(--purple-700),var(--purple-500));color:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow-soft);margin-bottom:14px}
 .hero h2{margin:0 0 8px;font-size:24px;line-height:1.05}
 .hero p{margin:0 0 16px;font-size:14px;opacity:.92}
-.searchbar{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:12px 12px;color:#918aa0}
+.searchbar{display:flex;align-items:center;gap:15px;background:#fff;border-radius:14px;padding:6px 24px;color:#918aa0}
 .searchbar input{border:0;outline:0;width:100%;font-size:16px;color:var(--ink);background:transparent}
 .searchbar input::placeholder{color:#9c95a9}
 
@@ -151,7 +152,7 @@ img{display:block;max-width:100%}
 .chat-input input{height:50px;border-radius:15px;border:1px solid var(--line);padding:0 14px;outline:none;font-size:16px}
 .chat-input button{height:44px;border-radius:15px;background:var(--purple-700);color:#fff;font-weight:900}
 
-.profile-hero{background:linear-gradient(135deg,var(--purple-800),var(--purple-500));border-radius:0 0 26px 26px;margin:0 -18px 16px;padding:18px 18px 22px;color:#fff;text-align:center}
+.profile-hero{background:linear-gradient(135deg,var(--purple-800),var(--purple-500));border-radius:26px 26px 26px 26px;margin:0px 0px 16px;padding:18px 18px 22px;color:#fff;text-align:center}
 .profile-hero img{width:86px;height:86px;border-radius:50%;margin:0 auto 9px;border:4px solid rgba(255,255,255,.6)}
 .profile-hero h2{font-size:24px;margin:0 0 8px}
 .profile-hero p{font-size:15px;margin:0 0 10px;opacity:.92}

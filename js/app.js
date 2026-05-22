@@ -485,9 +485,16 @@ function renderProfile(){
   const u = UM_DATA.currentUser;
   const {topbar, content} = cloneShell();
   setActiveNav("profile");
-  topbar.innerHTML = topLogo(`
-    <button class="icon-btn" id="settingsBtn" title="Configuración">⚙</button>
-  `);
+  topbar.innerHTML = `
+    <div class="top-spacer"></div>
+    <div class="logo-mini">
+      <img src="assets/logo-bag.svg" alt="UniMarket">
+      <strong>UNIMARKET</strong>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="settingsBtn" title="Configuración">⚙</button>
+    </div>
+  `;
   content.innerHTML = `
     <section class="profile-hero">
       <img src="${u.avatar}" alt="${u.name}">
