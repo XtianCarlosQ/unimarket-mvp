@@ -330,7 +330,7 @@ function renderHome(){
   content.querySelector("[data-go='products']").addEventListener("click", () => renderProducts(null, "", {screen: "home"}));
   content.querySelector("#homeSearch").addEventListener("input", e => renderProducts(null, e.target.value, {screen: "home"}));
   app.querySelector("#themeBtn").addEventListener("click", toggleTheme);
-  app.querySelector("#menuBtn").addEventListener("click", () => toast("Menú de navegación: usa los botones inferiores."));
+  app.querySelector("#menuBtn").addEventListener("click", showMenuDrawer);
   app.querySelector("#notifBtn").addEventListener("click", () => toast("No tienes notificaciones nuevas."));
   pushStateForScreen("home");
 }
@@ -627,18 +627,18 @@ function renderProfile(){
       </div>
     </section>
 
-    <section class="menu-list">
+    <section class="menu-list" style="margin-top: 15px;">
       ${[
-        ["▦","Mis productos"],
+        ["🏪","Mis productos"],
         ["♡","Favoritos"],
-        ["⌖","Puntos de entrega"],
+        ["📍","Direcciones"],
         ["💳","Métodos de pago"],
-        ["?","Ayuda y soporte"],
-        ["⎋","Cerrar sesión"]
+        ["❓","Ayuda y soporte"],
+        ["🚪","Cerrar sesión"]
       ].map((m, index) => `<button class="menu-item" data-action="${index === 5 ? 'logout' : ''}"><span>${m[0]}</span><b>${m[1]}</b><span class="arrow">›</span></button>`).join("")}
     </section>
   `;
-  app.querySelector("#settingsBtn").addEventListener("click", () => toast("Configuración: notificaciones, privacidad y preferencias."));
+  app.querySelector("#settingsBtn").addEventListener("click", showSettingsModal);
   content.querySelectorAll("[data-action='logout']").forEach(btn => {
     btn.addEventListener("click", () => showConfirmModal("Tu sesión de demostración se cerrará y verás una pantalla vacía.", logout));
   });
@@ -673,6 +673,112 @@ function renderPublish(){
   app.querySelector("#backHome").addEventListener("click", goBack);
   content.querySelector("#simulatePublish").addEventListener("click", () => toast("Producto publicado en modo demo."));
   pushStateForScreen("publish");
+}
+
+function showSettingsModal() {
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.innerHTML = `
+    <div class="modal-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <h3 style="margin:0;">Configuración</h3>
+        <button id="closeSettings" style="font-size:22px;color:var(--muted);margin-left:auto;font-weight:bold;">×</button>
+      </div>
+      <div class="switch-line">
+        <div class="switch-text">
+          <b>Modo oscuro</b>
+          <span>Activar interfaz oscura para ambientes con poca luz</span>
+        </div>
+        <div class="toggle ${state.dark ? 'active' : ''}" id="darkToggle"></div>
+      </div>
+      <div class="switch-line" style="opacity:0.6; pointer-events:none;">
+        <div class="switch-text">
+          <b>Notificaciones push</b>
+          <span>Alertas de mensajes y nuevas ofertas (Pronto)</span>
+        </div>
+        <div class="toggle"></div>
+      </div>
+      <div class="switch-line" style="opacity:0.6; pointer-events:none;">
+        <div class="switch-text">
+          <b>Ubicación precisa</b>
+          <span>Buscar productos más cercanos en el campus (Pronto)</span>
+        </div>
+        <div class="toggle"></div>
+      </div>
+    </div>
+  `;
+  app.appendChild(modal);
+  
+  modal.querySelector("#closeSettings").addEventListener("click", () => modal.remove());
+  modal.querySelector("#darkToggle").addEventListener("click", () => {
+    toggleTheme();
+  });
+  modal.addEventListener("click", e => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+function showMenuDrawer() {
+  const backdrop = document.createElement("div");
+  backdrop.className = "drawer-backdrop";
+  backdrop.innerHTML = `
+    <div class="drawer-card">
+      <div class="drawer-header">
+        <h3>UniMarket Menú</h3>
+        <button class="drawer-close" id="closeDrawer">×</button>
+      </div>
+      <nav class="drawer-menu">
+        <button class="drawer-item" data-target="home"><span>⌂</span> Inicio</button>
+        <button class="drawer-item" data-target="categories"><span>⌕</span> Explorar Categorías</button>
+        <button class="drawer-item" data-target="publish"><span>＋</span> Vender Producto</button>
+        <button class="drawer-item" data-target="messages"><span>✉</span> Mensajes</button>
+        <button class="drawer-item" data-target="profile"><span>♙</span> Mi Perfil</button>
+        <div style="border-top: 1px solid var(--line); margin: 10px 0;"></div>
+        <button class="drawer-item" id="drawerThemeBtn"><span>◐</span> Cambiar Tema</button>
+        <button class="drawer-item" id="drawerHelpBtn"><span>❓</span> Ayuda y FAQ</button>
+      </nav>
+      <div class="drawer-footer">
+        <b>UniMarket v1.0.0 (MVP)</b><br>
+        Hecho con 💜 para la comunidad UNMSM
+      </div>
+    </div>
+  `;
+  app.appendChild(backdrop);
+  
+  // Animación del menú lateral
+  setTimeout(() => backdrop.classList.add("show"), 10);
+  
+  const close = () => {
+    backdrop.classList.remove("show");
+    setTimeout(() => backdrop.remove(), 300);
+  };
+  
+  backdrop.querySelector("#closeDrawer").addEventListener("click", close);
+  backdrop.addEventListener("click", e => {
+    if (e.target === backdrop) close();
+  });
+  
+  backdrop.querySelectorAll(".drawer-item[data-target]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.target;
+      close();
+      resetBackTarget();
+      if (target === "home") renderHome();
+      if (target === "categories") renderCategories();
+      if (target === "publish") renderPublish();
+      if (target === "messages") renderMessages();
+      if (target === "profile") renderProfile();
+    });
+  });
+  
+  backdrop.querySelector("#drawerThemeBtn").addEventListener("click", () => {
+    toggleTheme();
+  });
+  
+  backdrop.querySelector("#drawerHelpBtn").addEventListener("click", () => {
+    close();
+    toast("Soporte de UniMarket disponible pronto.");
+  });
 }
 
 function toggleTheme(){
